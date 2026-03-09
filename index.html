@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mùng 8 Tháng 3 – Chân Tâm 🌺</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{--gold:#FFD166;--red:#FF6B6B;--cream:#FFF8F0;--crimson:#8B1A1A;--deep:#010008;}
+    html,body{width:100%;height:100%;overflow:hidden;background:var(--deep);}
+
+    #three-wrap{position:fixed;inset:0;cursor:grab;}
+    #three-wrap.dragging{cursor:grabbing;}
+    #three-canvas{display:block;width:100%;height:100%;}
+
+    /* TITLE */
+    #title-overlay{
+      position:fixed;top:0;left:0;right:0;z-index:10;
+      display:flex;flex-direction:column;align-items:center;
+      padding:40px 20px 0;pointer-events:none;
+      transition:opacity .5s;
+    }
+    .title-label{
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(11px,2vw,13px);letter-spacing:.6em;
+      color:var(--gold);text-transform:uppercase;opacity:.8;
+    }
+    .title-name{
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(32px,7vw,72px);font-weight:300;font-style:italic;
+      color:var(--cream);line-height:1.1;text-align:center;margin-top:6px;
+      text-shadow:0 0 40px rgba(255,209,102,.4),0 2px 20px rgba(0,0,0,.8);
+    }
+    .title-name span{color:var(--gold);font-weight:600;font-style:normal;}
+
+    /* HINT */
+    #hint{
+      position:fixed;bottom:110px;left:50%;transform:translateX(-50%);
+      z-index:10;font-family:'EB Garamond',serif;font-size:14px;
+      color:rgba(255,248,240,.45);letter-spacing:.2em;text-align:center;
+      pointer-events:none;animation:fadeHint 4s 1.5s ease both;
+    }
+    @keyframes fadeHint{
+      0%{opacity:0;transform:translateX(-50%) translateY(8px);}
+      25%{opacity:1;transform:translateX(-50%) translateY(0);}
+      85%{opacity:.45;}100%{opacity:.45;}
+    }
+
+    /* ENTER BUTTON */
+    #enter-btn{
+      position:fixed;bottom:36px;left:50%;transform:translateX(-50%);
+      z-index:10;font-family:'Cormorant Garamond',serif;
+      font-size:17px;letter-spacing:.2em;color:#1A0000;
+      background:linear-gradient(135deg,var(--gold),#E8903A);
+      border:none;padding:14px 40px;border-radius:40px;cursor:pointer;
+      box-shadow:0 0 30px rgba(255,209,102,.4),0 4px 20px rgba(0,0,0,.6);
+      opacity:0;animation:fadeBtnIn 1s 4.5s ease forwards;
+      transition:transform .2s,box-shadow .2s;
+    }
+    @keyframes fadeBtnIn{to{opacity:1;}}
+    #enter-btn:hover{
+      transform:translateX(-50%) translateY(-3px);
+      box-shadow:0 0 50px rgba(255,209,102,.6),0 8px 28px rgba(0,0,0,.5);
+    }
+
+    /* MUSIC */
+    #music-btn{
+      position:fixed;top:20px;right:20px;z-index:20;
+      width:48px;height:48px;border-radius:50%;
+      background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.35);
+      color:var(--gold);font-size:20px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;transition:background .2s;
+    }
+    #music-btn:hover{background:rgba(255,209,102,.22);}
+    #music-btn.on{animation:pulseG 1.5s infinite;}
+    @keyframes pulseG{0%,100%{box-shadow:0 0 12px rgba(255,209,102,.3);}50%{box-shadow:0 0 28px rgba(255,209,102,.7);}}
+
+    /* CONTENT */
+    #content{
+      position:fixed;inset:0;overflow-y:auto;
+      background:var(--cream);opacity:0;pointer-events:none;
+      transition:opacity .8s;z-index:50;
+    }
+    #content.visible{opacity:1;pointer-events:auto;}
+
+    #back-btn{
+      position:fixed;top:20px;left:20px;z-index:60;
+      font-family:'Cormorant Garamond',serif;font-size:15px;letter-spacing:.15em;
+      color:var(--crimson);background:rgba(255,248,240,.92);
+      border:1px solid rgba(139,26,26,.3);padding:10px 20px;
+      border-radius:30px;cursor:pointer;display:none;transition:transform .2s;
+    }
+    #back-btn:hover{transform:translateX(-3px);}
+
+    /* ── CONTENT STYLES ── */
+    .c-sec{
+      min-height:100vh;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;padding:80px 24px;gap:40px;
+    }
+    .c-label{
+      font-family:'Cormorant Garamond',serif;font-size:12px;
+      letter-spacing:.6em;text-transform:uppercase;text-align:center;color:var(--crimson);
+    }
+    .c-title{
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(28px,6vw,54px);font-weight:300;font-style:italic;
+      color:#3A0808;text-align:center;line-height:1.15;
+    }
+    .c-title em{color:var(--crimson);font-style:normal;font-weight:600;}
+
+    /* PHOTOS */
+    #sec-photos{background:var(--cream);}
+    .photos-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:20px;width:100%;max-width:860px;
+    }
+    .photo-card{
+      position:relative;border-radius:4px;overflow:hidden;aspect-ratio:3/4;
+      background:linear-gradient(135deg,#e8d9c4,#d4b896);
+      box-shadow:0 8px 32px rgba(92,10,10,.15);
+      transition:transform .35s,box-shadow .35s;cursor:pointer;
+    }
+    .photo-card:hover{transform:translateY(-8px) rotate(-.5deg);box-shadow:0 18px 48px rgba(92,10,10,.22);}
+    .photo-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+    .ph-num{
+      position:absolute;top:10px;left:10px;z-index:3;
+      font-family:'Cormorant Garamond',serif;font-size:12px;
+      color:var(--gold);background:rgba(92,10,10,.6);padding:2px 8px;
+      border-radius:20px;letter-spacing:.2em;
+    }
+
+    /* MEMORIES */
+    #sec-mem{background:linear-gradient(160deg,#1A0000 0%,#3A0808 55%,#2A0A00 100%);}
+    #sec-mem .c-title{color:var(--cream);}
+    #sec-mem .c-label{color:var(--gold);}
+    .mem-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+      gap:24px;max-width:860px;width:100%;
+    }
+    .mem-card{
+      background:rgba(255,248,240,.07);border:1px solid rgba(255,209,102,.25);
+      border-radius:6px;padding:28px 24px;transition:background .3s,transform .3s;
+    }
+    .mem-card:hover{background:rgba(255,248,240,.12);transform:translateY(-4px);}
+    .mem-icon{font-size:28px;margin-bottom:12px;}
+    .mem-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--gold);margin-bottom:8px;}
+    .mem-text{font-family:'EB Garamond',serif;font-size:16px;color:rgba(255,248,240,.8);line-height:1.8;}
+    .mem-date{margin-top:14px;font-size:11px;letter-spacing:.3em;color:rgba(255,209,102,.55);text-transform:uppercase;}
+
+    /* CLOSING */
+    #sec-close{background:var(--cream);text-align:center;}
+    .cl-heart{font-size:52px;animation:hb 1.8s infinite;}
+    @keyframes hb{0%,100%{transform:scale(1);}14%{transform:scale(1.2);}28%{transform:scale(1);}42%{transform:scale(1.12);}70%{transform:scale(1);}}
+    .cl-main{
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(26px,6vw,62px);font-style:italic;font-weight:300;
+      color:var(--crimson);margin:20px 0 6px;line-height:1.1;
+    }
+    .cl-name{color:#C9922A;font-weight:600;font-style:normal;}
+    .cl-body{
+      max-width:520px;margin:24px auto 0;
+      font-family:'EB Garamond',serif;font-size:clamp(15px,2vw,18px);
+      color:#5A2D00;line-height:1.85;
+    }
+    .cl-div{width:80px;height:2px;background:linear-gradient(90deg,transparent,#C9922A,transparent);margin:36px auto;}
+    .cl-foot{font-size:13px;color:#bba080;letter-spacing:.2em;}
+
+    @media(max-width:600px){
+      .photos-grid{grid-template-columns:1fr 1fr;}
+      .mem-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="three-wrap"><canvas id="three-canvas"></canvas></div>
+
+<div id="title-overlay">
+  <p class="title-label">08 · 03 · 2026</p>
+  <h1 class="title-name">Hồ Nguyên<br/><span>Chân Tâm</span></h1>
+</div>
+
+<div id="hint">🖱 Kéo để xoay &nbsp;·&nbsp; Cuộn để zoom</div>
+<button id="enter-btn" onclick="enterContent()">Xem thêm &nbsp;→</button>
+<button id="music-btn">🎵</button>
+<audio id="bg-audio" loop><source src="nhac_nen.mp3" type="audio/mpeg"/></audio>
+
+<!-- CONTENT SECTION -->
+<div id="content">
+  <button id="back-btn" onclick="backTo3D()">← Quay lại</button>
+
+  <section class="c-sec" id="sec-photos">
+    <p class="c-label">Khoảnh khắc</p>
+    <h2 class="c-title">Những bức ảnh<br/>của <em>Tâm</em></h2>
+    <div class="photos-grid">
+      <div class="photo-card">
+        <img src="anh1.jpg" alt="Ảnh Tâm 1"/><span class="ph-num">01</span>
+      </div>
+      <div class="photo-card">
+        <img src="anh2.jpg" alt="Ảnh Tâm 2"/><span class="ph-num">02</span>
+      </div>
+      <div class="photo-card">
+        <img src="anh3.jpg" alt="Ảnh Tâm 3"/><span class="ph-num">03</span>
+      </div>
+      <div class="photo-card">
+        <img src="anh4.jpg" alt="Ảnh Tâm 4"/><span class="ph-num">04</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="c-sec" id="sec-mem">
+    <p class="c-label">Kỉ niệm</p>
+    <h2 class="c-title">Những khoảnh khắc<br/>đáng nhớ</h2>
+    <div class="mem-grid">
+      <div class="mem-card">
+        <div class="mem-icon">🌟</div>
+        <div class="mem-title">Lần đầu gặp nhau</div>
+        <p class="mem-text">
+          Mày có nhớ lần đầu tụi mình gặp nhau không? Tao thấy lạ lắm mọi thứ
+          cứ tự nhiên diễn ra, gặp cái là quen ngay, chẳng cần làm quen kiểu thông
+          thường gì cả. Rồi cái trò đoán lý do mày buồn ấy, tao kể đại ba cái
+          mà dính tới hai :)) hên thật sự chứ không phải tao thần thánh gì đâu á :)).
+          Chắc là duyên định rồi, nên tao mới trúng kiểu đó hihi.
+        </p>
+        <div class="mem-date">Không nhớ ngày · Nhưng vẫn nhớ</div>
+      </div>
+      <div class="mem-card">
+        <div class="mem-icon">🎂</div>
+        <div class="mem-title">Sinh nhật cho mày leo cây</div>
+        <p class="mem-text">
+          Vụ này tao tội lỗi thật sự. Hẹn mày rồi bỏ mày đứng đợi mà không phải
+          đợi bình thường, là đợi sau khi đã cất công đặt bánh và ngồi thêm
+          hai tiếng nữa chứ. Mỗi lần nhớ đến mày là tao nhớ lại ngày sinh nhật
+          đó liền, kiểu ám ảnh theo nghĩa tội lỗi ấy. Nên cái vụ tao đặt bánh
+          mì với sữa cho mày ăn tối rồi ăn sáng đó không phải tự dưng tốt bụng
+          vô cớ đâu nha, đó là tao trả nợ :)). Xem như huề rồi nha mày.
+        </p>
+        <div class="mem-date">26 · 07 · 2025</div>
+      </div>
+      <div class="mem-card">
+        <div class="mem-icon">🗝️</div>
+        <div class="mem-title">Escape Room & chuyện leo cây ngược</div>
+        <p class="mem-text">
+          Lần này thì mày cho tao leo cây  tao tưởng mày còn cay vụ sinh nhật
+          nên cũng không dám trách, ai ngờ mày nhìn nhầm giờ thôi quả báo rồi.
+          Nhưng mà buồn cười nhất vẫn làngười to con như gấu, vậy mà
+          lại đi sợ ông nhân viên trong escape room t-tao đứng nhìn mà
+          không biết phản ứng thế nào luôn mà. Tính ra mày đứng đấm solo chay với ổng được luôn á.
+          Hên là có luật bảo vệ người lao động chứ không thì ...
+          À còn kèo bắn cung nữa may mày chạy về Huế kịp, không thì tao
+          không thì mày chết chắc!!!
+        </p>
+        <div class="mem-date">Gần đây · Còn nhớ rõ lắm</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="c-sec" id="sec-close">
+    <div class="cl-heart">🌺</div>
+    <h2 class="cl-main">Chúc mừng<br/><span class="cl-name">Hồ Nguyên Chân Tâm</span></h2>
+    <p class="cl-body">Dù cuộc sống có bận rộn đến đâu, tao luôn muốn mày biết rằng mày thật sự quan trọng. Chúc mày một ngày 8 tháng 3 thật đặc biệt, đầy nụ cười và những điều tốt đẹp xứng đáng. 💛</p>
+    <div class="cl-div"></div>
+    <p class="cl-foot">Mùng 8 Tháng 3 · 2026 · Với tất cả tình cảm (Nhưng mà bây giờ 10/3 rồi :)) )</p>
+  </section>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   THREE.JS SETUP
+══════════════════════════════════════ */
+const MESSAGES = [
+  { text: "Có thể giờ qua 8/3 1-2 ngày rồi nhưng mà tao vẫn nhớ đấy nhé, nên là chúc mày 8/3 nhaa! 🌸", color: "#FFD166" },
+  { text: "Dù mày có học tiếng Anh cũng chưa đuổi kịp tao đâu! Nhưng mà vẫn cố gắng lên nhé 😏", color: "#FF8C69" },
+  { text: "Đấy, làm hẳn cái web cho, vinh dự nhé Hồ Nguyên Chân Tâm! 😎", color: "#E8B84B" },
+  { text: "8/3 không ai thèm chúc chứ gì? Thôi tao miễn cưỡng chúc cho đỡ tủi thân nè 🌹", color: "#FF6B6B" },
+  { text: "Quà cáp gì tầm này, tấm lòng của tao là món quà lớn nhất rồi! 💎", color: "#90E0FF" },
+  { text: "Chúc mày bớt bớt ảo tưởng sức mạnh lại nha 😈", color: "#FFB3C6" },
+  { text: "Cuộc sống có nhiều khó khăn, nhưng vượt qua môn Tiếng Anh chắc là khó nhất với mày =)) 📚", color: "#FF8C69" },
+  { text: "Mày đang mỉm cười đó, đúng không? Nhe cái răng ra xem nào 😁", color: "#FFD166" },
+  { text: "Chúc Chân Tâm luôn xinh đẹp, nhưng mà bớt bớt mỏ hỗn lại thì càng tốt 🦋", color: "#A8FFB0" },
+  { text: "Biết là trễ rồi nhưng thà có chúc còn hơn không có gì đúng không? 😂", color: "#FFF0D0" },
+  { text: "Ăn ít thôi không lại lăn nhanh hơn đi đấy nhé 🐷", color: "#FFD166" },
+  { text: "Tâm à, bớt điệu đà giả nai lại đi, tao đi guốc trong bụng mày rồi 🙄", color: "#FF6B6B" },
+  { text: "Đọc đến đây mà chưa thấy cảm động thì đúng là tim bằng đá! 😤", color: "#FF8C69" },
+  { text: "Nói chung là cũng chúc mày mọi điều tốt đẹp nhất, bớt xui xẻo lại 🌺", color: "#E8B84B" },
+  { text: "Đừng có học nhiều quá mà stress, rảnh thì rủ tao đi ăn 🍔", color: "#FFD166" }
+];
+
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+
+const canvas3d = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(W(), H());
+renderer.setClearColor(0x010008, 1);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(65, W() / H(), 0.1, 2000);
+
+let theta = 0.3, phi = 1.3, radius = 130;
+
+function syncCamera() {
+  camera.position.set(
+    radius * Math.sin(phi) * Math.sin(theta),
+    radius * Math.cos(phi) + 15,
+    radius * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(0, 15, 0);
+}
+syncCamera();
+
+/* ── STARS ── */
+const sGeo = new THREE.BufferGeometry();
+const sCount = 2500;
+const sPos = new Float32Array(sCount * 3);
+for (let i = 0; i < sCount * 3; i++) sPos[i] = (Math.random() - .5) * 1000;
+sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+const sMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.55, transparent: true, opacity: 0.7 });
+scene.add(new THREE.Points(sGeo, sMat));
+
+/* ── TEXT TEXTURE ── */
+function makeTexture(msg) {
+  const CW = 600, CH = 96;
+  const cv = document.createElement('canvas');
+  cv.width = CW; cv.height = CH;
+  const cx = cv.getContext('2d');
+
+  let fs = 26;
+  cx.font = `bold ${fs}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",Arial,sans-serif`;
+  while (cx.measureText(msg.text).width > CW - 24 && fs > 13) {
+    fs -= 2;
+    cx.font = `bold ${fs}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",Arial,sans-serif`;
+  }
+
+  cx.textAlign = 'center';
+  cx.textBaseline = 'middle';
+
+  // glow
+  cx.shadowBlur = 20;
+  cx.shadowColor = msg.color;
+  cx.fillStyle = msg.color;
+  cx.fillText(msg.text, CW / 2, CH / 2);
+  // sharp
+  cx.shadowBlur = 0;
+  cx.fillText(msg.text, CW / 2, CH / 2);
+
+  return new THREE.CanvasTexture(cv);
+}
+
+/* ── TEXT PLANES ── */
+const POOL = 44;
+const Y_TOP = 190, Y_BOT = -130;
+const SX = 160, SZ = 160;
+const planes = [];
+
+for (let i = 0; i < POOL; i++) {
+  const msg = MESSAGES[i % MESSAGES.length];
+  const mat = new THREE.MeshBasicMaterial({
+    map: makeTexture(msg),
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 4.8), mat);
+
+  mesh.position.set(
+    (Math.random() - .5) * SX,
+    Y_BOT + Math.random() * (Y_TOP - Y_BOT),
+    (Math.random() - .5) * SZ
+  );
+  mesh.rotation.set(
+    (Math.random() - .5) * 0.55,
+    (Math.random() - .5) * Math.PI * 2,
+    (Math.random() - .5) * 0.22
+  );
+  mesh.userData = {
+    vy:    -(0.2 + Math.random() * 0.38),
+    vx:    (Math.random() - .5) * 0.035,
+    vRY:   (Math.random() - .5) * 0.005,
+    vRZ:   (Math.random() - .5) * 0.003,
+    next:  (i + 1) % MESSAGES.length,
+  };
+  scene.add(mesh);
+  planes.push(mesh);
+}
+
+/* ── ORBIT ── */
+const wrap = document.getElementById('three-wrap');
+let drag = false, lx = 0, ly = 0;
+
+wrap.addEventListener('mousedown', e => {
+  drag = true; lx = e.clientX; ly = e.clientY;
+  wrap.classList.add('dragging');
+});
+window.addEventListener('mouseup', () => { drag = false; wrap.classList.remove('dragging'); });
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  theta -= (e.clientX - lx) * 0.006;
+  phi   -= (e.clientY - ly) * 0.004;
+  phi = Math.max(0.12, Math.min(Math.PI - 0.12, phi));
+  lx = e.clientX; ly = e.clientY;
+  syncCamera();
+});
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  radius = Math.max(28, Math.min(280, radius + e.deltaY * 0.22));
+  syncCamera();
+}, { passive: false });
+
+// Touch
+let lt = { x: 0, y: 0, d: 0 };
+wrap.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { lt.x = e.touches[0].clientX; lt.y = e.touches[0].clientY; }
+  if (e.touches.length === 2) lt.d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+}, { passive: true });
+wrap.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    theta -= (e.touches[0].clientX - lt.x) * 0.007;
+    phi   -= (e.touches[0].clientY - lt.y) * 0.005;
+    phi = Math.max(0.12, Math.min(Math.PI - 0.12, phi));
+    lt.x = e.touches[0].clientX; lt.y = e.touches[0].clientY;
+    syncCamera();
+  } else if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    radius = Math.max(28, Math.min(280, radius - (d - lt.d) * 0.5));
+    lt.d = d; syncCamera();
+  }
+}, { passive: false });
+
+/* ── RESIZE ── */
+window.addEventListener('resize', () => {
+  renderer.setSize(W(), H());
+  camera.aspect = W() / H();
+  camera.updateProjectionMatrix();
+});
+
+/* ── LOOP ── */
+let frame = 0;
+(function tick() {
+  requestAnimationFrame(tick);
+  frame++;
+
+  if (!drag) { theta += 0.0005; syncCamera(); }
+
+  for (const m of planes) {
+    m.position.y += m.userData.vy;
+    m.position.x += m.userData.vx;
+    m.rotation.y += m.userData.vRY;
+    m.rotation.z += m.userData.vRZ;
+
+    const t = (Y_TOP - m.position.y) / (Y_TOP - Y_BOT);
+    m.material.opacity = t < 0.07 ? t / 0.07 : t > 0.9 ? (1 - t) / 0.1 : 1;
+
+    if (m.position.y < Y_BOT - 12) {
+      const next = MESSAGES[m.userData.next];
+      m.userData.next = (m.userData.next + 1) % MESSAGES.length;
+      if (m.material.map) m.material.map.dispose();
+      m.material.map = makeTexture(next);
+      m.material.needsUpdate = true;
+      m.position.set(
+        (Math.random() - .5) * SX,
+        Y_TOP + Math.random() * 20,
+        (Math.random() - .5) * SZ
+      );
+      m.rotation.set(
+        (Math.random() - .5) * 0.55,
+        (Math.random() - .5) * Math.PI * 2,
+        (Math.random() - .5) * 0.22
+      );
+    }
+  }
+
+  sMat.opacity = 0.55 + Math.sin(frame * 0.014) * 0.15;
+  renderer.render(scene, camera);
+})();
+
+/* ══════════════════════════════════════
+   UI
+══════════════════════════════════════ */
+function enterContent() {
+  document.getElementById('content').classList.add('visible');
+  document.getElementById('back-btn').style.display = 'block';
+  const ov = document.getElementById('title-overlay');
+  ov.style.transition = 'opacity .5s';
+  ov.style.opacity = '0';
+  ov.style.pointerEvents = 'none';
+  document.getElementById('enter-btn').style.display = 'none';
+  document.getElementById('hint').style.display = 'none';
+}
+function backTo3D() {
+  document.getElementById('content').classList.remove('visible');
+  document.getElementById('back-btn').style.display = 'none';
+  document.getElementById('title-overlay').style.opacity = '1';
+  document.getElementById('enter-btn').style.display = '';
+  document.getElementById('hint').style.display = '';
+}
+
+const mBtn = document.getElementById('music-btn');
+const audio = document.getElementById('bg-audio');
+let playing = false;
+mBtn.addEventListener('click', () => {
+  playing = !playing;
+  if (playing) { audio.play().catch(() => {}); mBtn.textContent = '🔊'; mBtn.classList.add('on'); }
+  else          { audio.pause(); mBtn.textContent = '🎵'; mBtn.classList.remove('on'); }
+});
+
+
+</script>
+</body>
+</html>
